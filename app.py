@@ -9,30 +9,39 @@ Created on Fri Jan 30 00:55:56 2026
 import streamlit as st
 import google.generativeai as genai
 
-st.set_page_config(page_title="Traductor Argento")
+st.set_page_config(page_title="Traductor Argento", page_icon="🧉")
 
-# Intentamos cargar la clave de los Secrets
+# 1. Configuración de la llave
 if "api_key" in st.secrets:
-    actual_key = st.secrets["api_key"]
-    # Limpiamos la clave por si tiene espacios o comillas extra
-    actual_key = actual_key.strip().replace('"', '').replace("'", "")
-    genai.configure(api_key=actual_key)
+    # Limpiamos la clave por si acaso
+    key = st.secrets["api_key"].strip().replace('"', '').replace("'", "")
+    genai.configure(api_key=key)
 else:
-    st.error("No hay clave en Secrets")
+    st.error("Falta la clave en Secrets")
 
+# 2. Función con el nombre de modelo que NO falla
 def traducir(texto):
-    # Intentamos con el modelo más común
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        res = model.generate_content(f"Traduce esto de argentina a españa: {texto}")
+        # Usamos el nombre que la API v1beta reconoce oficialmente
+        model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
+        
+        prompt = f"Traduce de argentino a español de España: {texto}. Sé gracioso."
+        res = model.generate_content(prompt)
         return res.text
     except Exception as e:
-        return f"Error de conexión: {e}"
+        # Si falla el anterior, probamos el nombre básico
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            res = model.generate_content(prompt)
+            return res.text
+        except Exception as e2:
+            return f"Error de modelo: {e2}"
 
+# 3. Interfaz
 st.title("Traductor Argento 🧉")
-frase = st.text_input("Escribe aquí:")
+frase = st.text_input("Dime qué te ha dicho:")
 
-if st.button("Traducir"):
+if st.button("Descifrar"):
     if frase:
-        resultado = traducir(frase)
-        st.write(resultado) 
+        with st.spinner('Traduciendo...'):
+            st.write(traducir(frase)) 
