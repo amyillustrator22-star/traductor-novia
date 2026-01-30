@@ -11,39 +11,40 @@ import google.generativeai as genai
 
 st.set_page_config(page_title="Traductor Argento", page_icon="🧉")
 
-# 1. Configuración de la llave
+# --- CONFIGURACIÓN DE SEGURIDAD ---
 if "api_key" in st.secrets:
-    key = st.secrets["api_key"].strip().replace('"', '').replace("'", "")
-    genai.configure(api_key=key)
+    # Limpiamos la clave de cualquier símbolo extraño
+    key_limpia = st.secrets["api_key"].strip().replace('"', '').replace("'", "")
+    genai.configure(api_key=key_limpia)
 else:
-    st.error("Falta la clave en Secrets")
+    st.error("❌ La clave no está en los Secrets de Streamlit.")
 
-# 2. Función con "Supervivencia" (Prueba varios nombres)
-def traducir(texto):
-    # Lista de nombres que Google acepta según la versión
-    nombres_modelos = [
-        'gemini-1.5-flash-latest', 
+def realizar_traduccion(frase):
+    # Intentamos todos los nombres conocidos, del más nuevo al más compatible
+    modelos = [
+        'gemini-1.5-flash', 
         'models/gemini-1.5-flash', 
-        'gemini-1.5-pro'
+        'gemini-1.5-pro', 
+        'gemini-pro'
     ]
     
-    for nombre in nombres_modelos:
+    for nombre in modelos:
         try:
             model = genai.GenerativeModel(nombre)
-            prompt = f"Traduce de argentino a español de España: {texto}. Sé gracioso y breve."
-            res = model.generate_content(prompt)
-            return res.text
+            # El prompt más simple para probar conexión
+            response = model.generate_content(f"Traduce al español de España: {frase}")
+            return response.text
         except Exception:
-            continue # Si falla este nombre, intenta el siguiente
+            continue # Si este falla, salta al siguiente sin avisar
             
-    return "❌ Error: Google no acepta ninguno de los nombres de modelo. Revisa tu API Key."
+    return "❌ Error persistente: Google rechaza la API Key. Por favor, genera una NUEVA llave en Google AI Studio y pégala en Secrets."
 
-# 3. Interfaz
-st.title("Traductor Argento 🧉")
-frase = st.text_input("Escribe lo que te dijo:")
+# --- INTERFAZ ---
+st.title("🇦🇷 Traductor Argento 🇪🇸")
+entrada = st.text_input("¿Qué te dijo?")
 
-if st.button("Descifrar"):
-    if frase:
-        with st.spinner('Buscando significado...'):
-            resultado = traducir(frase)
-            st.success(resultado) 
+if st.button("Traducir ahora"):
+    if entrada:
+        with st.spinner('Peleando con Google...'):
+            resultado = realizar_traduccion(entrada)
+            st.write(resultado)
