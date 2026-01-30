@@ -9,52 +9,56 @@ Created on Fri Jan 30 00:55:56 2026
 import streamlit as st
 import google.generativeai as genai
 
-# --- CONFIGURACIÓN DE LA PÁGINA PARA MÓVIL ---
+# --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Traductor Argento", page_icon="🧉")
 
-st.title("🇦🇷 Traductor de Novia 🇪🇸")
+st.title("🇦🇷 Traductor Argento 🇪🇸")
 st.markdown("---")
 
 # --- CONEXIÓN SEGURA ---
 try:
-    # Leemos la clave desde los Secrets de Streamlit
+    # Busca la clave en la "caja fuerte" de Streamlit
     API_KEY = st.secrets["api_key"]
     genai.configure(api_key=API_KEY)
 except Exception:
-    st.error("❌ Error: No se encontró la API Key en los Secrets de Streamlit.")
+    st.error("❌ Error: No se encontró la 'api_key' en los Secrets de Streamlit.")
 
-# --- FUNCIÓN DE TRADUCCIÓN (CON PARCHE PARA ERROR 404) ---
+# --- FUNCIÓN DE TRADUCCIÓN MAESTRA ---
 def realizar_traduccion(frase):
-    # Lista de nombres de modelos para probar cuál acepta Google hoy
-    nombres_a_probar = ['gemini-1.5-flash', 'models/gemini-1.5-flash']
+    # Probamos todos los nombres posibles para evitar el error 404
+    modelos_a_probar = [
+        'gemini-1.5-flash', 
+        'models/gemini-1.5-flash', 
+        'gemini-1.5-pro', 
+        'models/gemini-1.5-pro'
+    ]
     
-    for nombre in nombres_a_probar:
+    for nombre in modelos_a_probar:
         try:
             model = genai.GenerativeModel(nombre)
             prompt = (
                 f"Eres un experto en cultura argentina y española. "
-                f"Analiza esta frase de una chica argentina: '{frase}'. "
-                f"Tradúcela al español de España (usando jerga de allí), "
-                f"indica el NIVEL DE PELIGRO (1-5) y una RESPUESTA RECOMENDADA."
+                f"Traduce esta frase de una chica argentina a su novio español: '{frase}'. "
+                f"Usa jerga española de España. Indica NIVEL DE PELIGRO (1-5) "
+                f"y una RESPUESTA RECOMENDADA para evitar el bardo."
             )
             response = model.generate_content(prompt)
             return response.text
         except Exception:
-            # Si falla uno, el bucle intenta con el siguiente nombre
-            continue
+            continue # Si falla, salta al siguiente modelo
             
-    return "❌ Error: Google no reconoce los modelos. Revisa si tu API Key tiene permisos para Gemini 1.5 Flash."
+    return "❌ Error: Ningún modelo respondió. Por favor, genera una nueva API Key en Google AI Studio."
 
 # --- INTERFAZ ---
-frase_input = st.text_area("¿Qué te ha dicho ahora?", placeholder="Ej: No seas un pollerudo...")
+frase_input = st.text_area("¿Qué te ha dicho ahora?", placeholder="Ej: Me tenés re podrida...")
 
 if st.button("Descifrar"):
-    if frase_input:
-        with st.spinner('Traduciendo...'):
+    if frase_input.strip():
+        with st.spinner('Consultando a la IA...'):
             resultado = realizar_traduccion(frase_input)
             st.info(resultado)
     else:
-        st.warning("⚠️ Escribe algo, ¡che!")
+        st.warning("⚠️ Escribe algo primero, ¡che!")
 
 st.markdown("---")
-st.caption("Hecho con paciencia para relaciones a distancia.")
+st.caption("Versión estable 2026. Lista para usar en iPhone y Android.")
