@@ -9,79 +9,52 @@ Created on Fri Jan 30 00:55:56 2026
 import streamlit as st
 import google.generativeai as genai
 
-# --- CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(
-    page_title="Traductor Argento", 
-    page_icon="🧉", 
-    layout="centered"
-)
+# --- CONFIGURACIÓN DE LA PÁGINA PARA MÓVIL ---
+st.set_page_config(page_title="Traductor Argento", page_icon="🧉")
 
-# Estilos para que se vea bien en móvil
-st.markdown("""
-    <style>
-    .main {
-        background-color: #f5f7f9;
-    }
-    .stButton>button {
-        width: 100%;
-        border-radius: 20px;
-        height: 3em;
-        background-color: #0083B0;
-        color: white;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+st.title("🇦🇷 Traductor de Novia 🇪🇸")
+st.markdown("---")
 
-st.title("🇦🇷 Traductor Argento 🇪🇸")
-st.subheader("Entiende a tu novia en segundos")
-
-# --- CONFIGURACIÓN DE SEGURIDAD (API KEY) ---
-# Intentamos leer la clave desde los Secrets de Streamlit (para la nube)
-# Si no existe, avisamos al usuario.
+# --- CONEXIÓN SEGURA ---
 try:
-    if "api_key" in st.secrets:
-        API_KEY = st.secrets["api_key"]
-    else:
-        # Esto es solo por si pruebas localmente antes de subirlo
-        API_KEY = "TU_API_KEY_DE_PRUEBA_AQUI" 
-    
+    # Leemos la clave desde los Secrets de Streamlit
+    API_KEY = st.secrets["api_key"]
     genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-except Exception as e:
-    st.error("⚠️ Error de configuración: Asegúrate de poner la 'api_key' en los Secrets de Streamlit.")
+except Exception:
+    st.error("❌ Error: No se encontró la API Key en los Secrets de Streamlit.")
 
-# --- LÓGICA DE TRADUCCIÓN ---
+# --- FUNCIÓN DE TRADUCCIÓN (CON PARCHE PARA ERROR 404) ---
 def realizar_traduccion(frase):
-    prompt = f"""
-    Actúa como un mediador lingüístico experto en la relación Argentina-España.
-    Tu objetivo es ayudar a un español a entender a su novia argentina.
+    # Lista de nombres de modelos para probar cuál acepta Google hoy
+    nombres_a_probar = ['gemini-1.5-flash', 'models/gemini-1.5-flash']
     
-    Analiza la siguiente frase: "{frase}"
-    
-    Devuelve la respuesta con este formato:
-    - 🇪🇸 **TRADUCCIÓN AL ESPAÑOL:** (Significado en España con jerga local)
-    - ⚠️ **NIVEL DE BARDO:** (1 al 5)
-    - 🎭 **CONTEXTO:** (Si es broma, cariño o enfado real)
-    - 💡 **CONSEJO:** (Qué responder para quedar bien)
-    """
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"Error al consultar a la IA: {e}"
+    for nombre in nombres_a_probar:
+        try:
+            model = genai.GenerativeModel(nombre)
+            prompt = (
+                f"Eres un experto en cultura argentina y española. "
+                f"Analiza esta frase de una chica argentina: '{frase}'. "
+                f"Tradúcela al español de España (usando jerga de allí), "
+                f"indica el NIVEL DE PELIGRO (1-5) y una RESPUESTA RECOMENDADA."
+            )
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception:
+            # Si falla uno, el bucle intenta con el siguiente nombre
+            continue
+            
+    return "❌ Error: Google no reconoce los modelos. Revisa si tu API Key tiene permisos para Gemini 1.5 Flash."
 
-# --- INTERFAZ DE USUARIO ---
-st.write("Introduce la frase que te ha dejado descolocado:")
-frase_novia = st.text_area("Mensaje de ella:", placeholder="Ej: Me re colgué, no seas tan denso...", height=100)
+# --- INTERFAZ ---
+frase_input = st.text_area("¿Qué te ha dicho ahora?", placeholder="Ej: No seas un pollerudo...")
 
-if st.button("¡Descifrar ya!"):
-    if frase_novia.strip():
-        with st.spinner('Analizando el bardo...'):
-            resultado = realizar_traduccion(frase_novia)
-            st.markdown("---")
-            st.markdown(resultado)
+if st.button("Descifrar"):
+    if frase_input:
+        with st.spinner('Traduciendo...'):
+            resultado = realizar_traduccion(frase_input)
+            st.info(resultado)
     else:
-        st.warning("Escribe algo primero, ¡che!")
+        st.warning("⚠️ Escribe algo, ¡che!")
 
 st.markdown("---")
-st.caption("Creado para sobrevivir al amor sin fronteras. 💙")
+st.caption("Hecho con paciencia para relaciones a distancia.")
