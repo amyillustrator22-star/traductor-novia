@@ -9,56 +9,30 @@ Created on Fri Jan 30 00:55:56 2026
 import streamlit as st
 import google.generativeai as genai
 
-# --- CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(page_title="Traductor Argento", page_icon="🧉")
+st.set_page_config(page_title="Traductor Argento")
 
-st.title("🇦🇷 Traductor Argento 🇪🇸")
-st.markdown("---")
+# Intentamos cargar la clave de los Secrets
+if "api_key" in st.secrets:
+    actual_key = st.secrets["api_key"]
+    # Limpiamos la clave por si tiene espacios o comillas extra
+    actual_key = actual_key.strip().replace('"', '').replace("'", "")
+    genai.configure(api_key=actual_key)
+else:
+    st.error("No hay clave en Secrets")
 
-# --- CONEXIÓN SEGURA ---
-try:
-    # Busca la clave en la "caja fuerte" de Streamlit
-    API_KEY = st.secrets["api_key"]
-    genai.configure(api_key=API_KEY)
-except Exception:
-    st.error("❌ Error: No se encontró la 'api_key' en los Secrets de Streamlit.")
+def traducir(texto):
+    # Intentamos con el modelo más común
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        res = model.generate_content(f"Traduce esto de argentina a españa: {texto}")
+        return res.text
+    except Exception as e:
+        return f"Error de conexión: {e}"
 
-# --- FUNCIÓN DE TRADUCCIÓN MAESTRA ---
-def realizar_traduccion(frase):
-    # Probamos todos los nombres posibles para evitar el error 404
-    modelos_a_probar = [
-        'gemini-1.5-flash', 
-        'models/gemini-1.5-flash', 
-        'gemini-1.5-pro', 
-        'models/gemini-1.5-pro'
-    ]
-    
-    for nombre in modelos_a_probar:
-        try:
-            model = genai.GenerativeModel(nombre)
-            prompt = (
-                f"Eres un experto en cultura argentina y española. "
-                f"Traduce esta frase de una chica argentina a su novio español: '{frase}'. "
-                f"Usa jerga española de España. Indica NIVEL DE PELIGRO (1-5) "
-                f"y una RESPUESTA RECOMENDADA para evitar el bardo."
-            )
-            response = model.generate_content(prompt)
-            return response.text
-        except Exception:
-            continue # Si falla, salta al siguiente modelo
-            
-    return "❌ Error: Ningún modelo respondió. Por favor, genera una nueva API Key en Google AI Studio."
+st.title("Traductor Argento 🧉")
+frase = st.text_input("Escribe aquí:")
 
-# --- INTERFAZ ---
-frase_input = st.text_area("¿Qué te ha dicho ahora?", placeholder="Ej: Me tenés re podrida...")
-
-if st.button("Descifrar"):
-    if frase_input.strip():
-        with st.spinner('Consultando a la IA...'):
-            resultado = realizar_traduccion(frase_input)
-            st.info(resultado)
-    else:
-        st.warning("⚠️ Escribe algo primero, ¡che!")
-
-st.markdown("---")
-st.caption("Versión estable 2026. Lista para usar en iPhone y Android.")
+if st.button("Traducir"):
+    if frase:
+        resultado = traducir(frase)
+        st.write(resultado) 
