@@ -9,48 +9,26 @@ Created on Fri Jan 30 00:55:56 2026
 import streamlit as st
 import google.generativeai as genai
 
-# 1. Configuración visual rápida
 st.set_page_config(page_title="Traductor Argento", page_icon="🧉")
-st.title("🇦🇷 Traductor Novia (Versión Pro) 🇪🇸")
+st.title("🇦🇷 Traductor Novia 🇪🇸")
 
-# 2. Conexión con tu cuenta (Usando tu secreto)
+# Configuración
 if "api_key" in st.secrets:
-    # Limpiamos la clave de espacios o comillas rebeldes
-    llave = st.secrets["api_key"].strip().replace('"', '').replace("'", "")
-    genai.configure(api_key=llave)
+    genai.configure(api_key=st.secrets["api_key"].strip().replace('"', ''))
 else:
-    st.error("⚠️ No has pegado la api_key en los Secrets de Streamlit.")
+    st.error("Falta la clave en Secrets")
 
-# 3. Función de traducción robusta
-def traducir_frase(texto):
-    # Probamos los nombres de los modelos de pago
-    modelos_pro = ['gemini-1.5-pro', 'models/gemini-1.5-pro', 'gemini-1.5-flash']
-    
-    for nombre in modelos_pro:
-        try:
-            model = genai.GenerativeModel(nombre)
-            # Prompt específico para que sea útil
-            prompt = (
-                f"Traduce esta frase de una argentina a español de España: '{texto}'. "
-                f"Explica el tono (enfado, ironía, amor) y cómo debería responder el novio."
-            )
-            response = model.generate_content(prompt)
-            return response.text
-        except Exception:
-            continue # Si uno falla, intenta el siguiente modelo Pro
-            
-    return "❌ Error: Google no reconoce tu suscripción o la clave está mal pegada. Verifica los Secrets."
+def traducir(texto):
+    # Forzamos el modelo 'gemini-pro' que es el más compatible del mundo
+    try:
+        model = genai.GenerativeModel('gemini-pro')
+        res = model.generate_content(f"Traduce de argentino a español de España: {texto}")
+        return res.text
+    except Exception as e:
+        return f"Error real de Google: {e}"
 
-# 4. Interfaz de usuario
-frase_input = st.text_area("¿Qué te ha dicho?", placeholder="Escribe aquí la frase...")
-
+frase = st.text_input("¿Qué te dijo?")
 if st.button("Descifrar"):
-    if frase_input:
-        with st.spinner('Consultando a la IA Pro...'):
-            resultado = traducir_frase(frase_input)
-            st.info(resultado)
-    else:
-        st.warning("Escribe algo primero.")
-
-st.markdown("---")
-st.caption("Usando tu suscripción Gemini Paid Tier.") 
+    if frase:
+        resultado = traducir(frase)
+        st.write(resultado) 
