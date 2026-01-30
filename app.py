@@ -13,35 +13,37 @@ st.set_page_config(page_title="Traductor Argento", page_icon="🧉")
 
 # 1. Configuración de la llave
 if "api_key" in st.secrets:
-    # Limpiamos la clave por si acaso
     key = st.secrets["api_key"].strip().replace('"', '').replace("'", "")
     genai.configure(api_key=key)
 else:
     st.error("Falta la clave en Secrets")
 
-# 2. Función con el nombre de modelo que NO falla
+# 2. Función con "Supervivencia" (Prueba varios nombres)
 def traducir(texto):
-    try:
-        # Usamos el nombre que la API v1beta reconoce oficialmente
-        model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
-        
-        prompt = f"Traduce de argentino a español de España: {texto}. Sé gracioso."
-        res = model.generate_content(prompt)
-        return res.text
-    except Exception as e:
-        # Si falla el anterior, probamos el nombre básico
+    # Lista de nombres que Google acepta según la versión
+    nombres_modelos = [
+        'gemini-1.5-flash-latest', 
+        'models/gemini-1.5-flash', 
+        'gemini-1.5-pro'
+    ]
+    
+    for nombre in nombres_modelos:
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel(nombre)
+            prompt = f"Traduce de argentino a español de España: {texto}. Sé gracioso y breve."
             res = model.generate_content(prompt)
             return res.text
-        except Exception as e2:
-            return f"Error de modelo: {e2}"
+        except Exception:
+            continue # Si falla este nombre, intenta el siguiente
+            
+    return "❌ Error: Google no acepta ninguno de los nombres de modelo. Revisa tu API Key."
 
 # 3. Interfaz
 st.title("Traductor Argento 🧉")
-frase = st.text_input("Dime qué te ha dicho:")
+frase = st.text_input("Escribe lo que te dijo:")
 
 if st.button("Descifrar"):
     if frase:
-        with st.spinner('Traduciendo...'):
-            st.write(traducir(frase)) 
+        with st.spinner('Buscando significado...'):
+            resultado = traducir(frase)
+            st.success(resultado) 
